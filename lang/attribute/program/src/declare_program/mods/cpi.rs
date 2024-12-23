@@ -25,6 +25,11 @@ fn gen_cpi_instructions(idl: &Idl) -> proc_macro2::TokenStream {
     let ixs = idl.instructions.iter().map(|ix| {
         let method_name = format_ident!("{}", ix.name);
         let accounts_ident = format_ident!("{}", ix.name.to_camel_case());
+        let accounts_ident_with_lifetime = if ix.accounts.is_empty() {
+            quote! { #accounts_ident }
+        } else {
+            quote! { #accounts_ident<'info> }
+        };
 
         let args = ix.args.iter().map(|arg| {
             let name = format_ident!("{}", arg.name);
@@ -61,7 +66,7 @@ fn gen_cpi_instructions(idl: &Idl) -> proc_macro2::TokenStream {
 
         quote! {
             pub fn #method_name<'a, 'b, 'c, 'info>(
-                ctx: anchor_lang::context::CpiContext<'a, 'b, 'c, 'info, accounts::#accounts_ident<'info>>,
+                ctx: anchor_lang::context::CpiContext<'a, 'b, 'c, 'info, accounts::#accounts_ident_with_lifetime>,
                 #(#args),*
             ) -> #ret_type {
                 let ix = {
